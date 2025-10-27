@@ -546,7 +546,24 @@ export default function GameCanvas({ onGameOver, onMoneyChange, money }: GameCan
         state.explosions.push({ x: clickX, y: clickY, radius: 20, alpha: 1 });
         state.enemies = state.enemies.filter((enemy) => {
           const dist = Math.sqrt(
-            Math.pow(enemy.x + enemy.width / 2 - clickX, 2) +\n              Math.pow(enemy.y + enemy.height / 2 - clickY, 2)\n          );\n          if (dist < 80) {\n            state.explosions.push({\n              x: enemy.x + enemy.width / 2,\n              y: enemy.y + enemy.height / 2,\n              radius: 30,\n              alpha: 1,\n            });\n            state.money += 15;\n            state.kills++;\n            onMoneyChange?.(state.money);\n            return false;\n          }\n          return true;\n        });\n        break;\n\n      case 'missile':\n        state.missiles.push({\n          x: state.player.x + state.player.width / 2,\n          y: state.player.y + state.player.height / 2,\n          targetX: clickX,\n          targetY: clickY,\n          speed: 6,\n          damage: 50,\n        });\n        break;\n\n      case 'airstrike':\n        state.airStrikes.push({\n          x: clickX,\n          y: clickY,\n          timer: 90,\n        });\n        break;\n\n      case 'antiair':\n        state.antiAirSystems.push({\n          x: clickX,\n          y: clickY,\n          radius: 500,\n          duration: 600,\n        });\n        break;\n    }\n\n    setSelectedAbility(null);\n  };
+            Math.pow(enemy.x + enemy.width / 2 - clickX, 2) +
+              Math.pow(enemy.y + enemy.height / 2 - clickY, 2)
+          );
+          if (dist < 80) {
+            state.explosions.push({
+              x: enemy.x + enemy.width / 2,
+              y: enemy.y + enemy.height / 2,
+              radius: 30,
+              alpha: 1,
+            });
+            state.money += 15;
+            state.kills++;
+            onMoneyChange?.(state.money);
+            return false;
+          }
+          return true;
+        });
+        break;\n\n      case 'missile':\n        state.missiles.push({\n          x: state.player.x + state.player.width / 2,\n          y: state.player.y + state.player.height / 2,\n          targetX: clickX,\n          targetY: clickY,\n          speed: 6,\n          damage: 50,\n        });\n        break;\n\n      case 'airstrike':\n        state.airStrikes.push({\n          x: clickX,\n          y: clickY,\n          timer: 90,\n        });\n        break;\n\n      case 'antiair':\n        state.antiAirSystems.push({\n          x: clickX,\n          y: clickY,\n          radius: 500,\n          duration: 600,\n        });\n        break;\n    }\n\n    setSelectedAbility(null);\n  };
 
   if (!gameStarted) {
     return (
@@ -571,4 +588,27 @@ export default function GameCanvas({ onGameOver, onMoneyChange, money }: GameCan
       />
       
       <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
-        {abilities.map((ability) => (\n          <Button\n            key={ability.id}\n            onClick={() => handleAbilityClick(ability.id, ability.cost)}\n            disabled={money < ability.cost}\n            className={`${ability.color} hover:opacity-80 text-white font-bold px-4 py-6 flex flex-col items-center gap-1 transition-all ${\n              selectedAbility === ability.id ? 'ring-4 ring-accent scale-110' : ''\n            }`}\n          >\n            <Icon name={ability.icon} size={24} />\n            <span className="text-xs">{ability.name}</span>\n            <span className="text-xs opacity-80">${ability.cost}</span>\n          </Button>\n        ))}\n      </div>\n\n      {selectedAbility && (\n        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-accent text-background px-6 py-3 rounded-lg font-bold text-xl pointer-events-none">\n          ВЫБЕРИТЕ ЦЕЛЬ НА КАРТЕ\n        </div>\n      )}\n    </div>\n  );\n}
+        {abilities.map((ability) => (
+          <Button
+            key={ability.id}
+            onClick={() => handleAbilityClick(ability.id, ability.cost)}
+            disabled={money < ability.cost}
+            className={`${ability.color} hover:opacity-80 text-white font-bold px-4 py-6 flex flex-col items-center gap-1 transition-all ${
+              selectedAbility === ability.id ? 'ring-4 ring-accent scale-110' : ''
+            }`}
+          >
+            <Icon name={ability.icon} size={24} />
+            <span className="text-xs">{ability.name}</span>
+            <span className="text-xs opacity-80">${ability.cost}</span>
+          </Button>
+        ))}
+      </div>
+
+      {selectedAbility && (
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-accent text-background px-6 py-3 rounded-lg font-bold text-xl pointer-events-none">
+          ВЫБЕРИТЕ ЦЕЛЬ НА КАРТЕ
+        </div>
+      )}
+    </div>
+  );
+}
