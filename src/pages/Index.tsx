@@ -29,10 +29,10 @@ export default function Index() {
   if (gameMode !== 'menu') {
     return (
       <div className="relative w-full h-screen">
-        <GameCanvas onGameOver={handleGameOver} onMoneyChange={handleMoneyChange} />
+        <GameCanvas onGameOver={handleGameOver} onMoneyChange={handleMoneyChange} money={money} />
         <Button
           onClick={() => setGameMode('menu')}
-          className="absolute top-4 right-4 bg-destructive hover:bg-destructive/90"
+          className="absolute top-4 right-4 bg-destructive hover:bg-destructive/90 z-50"
         >
           <Icon name="X" size={20} className="mr-2" />
           ВЫХОД

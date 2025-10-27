@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import Icon from '@/components/ui/icon';
 
 interface GameObject {
   x: number;
@@ -28,19 +30,46 @@ interface Explosion {
   alpha: number;
 }
 
+interface Missile {
+  x: number;
+  y: number;
+  targetX: number;
+  targetY: number;
+  speed: number;
+  damage: number;
+}
+
+interface AirStrike {
+  x: number;
+  y: number;
+  timer: number;
+}
+
+interface AntiAirSystem {
+  x: number;
+  y: number;
+  radius: number;
+  duration: number;
+}
+
 interface GameCanvasProps {
   onGameOver?: () => void;
   onMoneyChange?: (money: number) => void;
+  money: number;
 }
 
-export default function GameCanvas({ onGameOver, onMoneyChange }: GameCanvasProps) {
+export default function GameCanvas({ onGameOver, onMoneyChange, money }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameStarted, setGameStarted] = useState(false);
+  const [selectedAbility, setSelectedAbility] = useState<string | null>(null);
   const gameStateRef = useRef({
     player: { x: 100, y: 500, width: 40, height: 40, color: '#4A7C59', health: 100, speed: 3 },
     enemies: [] as GameObject[],
     bullets: [] as Bullet[],
     explosions: [] as Explosion[],
+    missiles: [] as Missile[],
+    airStrikes: [] as AirStrike[],
+    antiAirSystems: [] as AntiAirSystem[],
     keys: {} as Record<string, boolean>,
     money: 100000,
     kills: 0,
@@ -78,7 +107,9 @@ export default function GameCanvas({ onGameOver, onMoneyChange }: GameCanvasProp
       state.mouseY = e.clientY - rect.top;
     };
 
-    const handleClick = () => {
+    const handleClick = (e: MouseEvent) => {
+      if (selectedAbility) return;
+
       const now = Date.now();
       if (now - state.lastShot < 200) return;
       state.lastShot = now;
@@ -221,6 +252,109 @@ export default function GameCanvas({ onGameOver, onMoneyChange }: GameCanvasProp
         exp.alpha -= 0.05;
         return exp.alpha > 0;
       });
+
+      state.missiles = state.missiles.filter((missile) => {
+        const dx = missile.targetX - missile.x;
+        const dy = missile.targetY - missile.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < 10) {
+          state.explosions.push({
+            x: missile.x,
+            y: missile.y,
+            radius: 20,
+            alpha: 1,
+          });
+
+          state.enemies = state.enemies.filter((enemy) => {
+            const enemyDist = Math.sqrt(
+              Math.pow(enemy.x + enemy.width / 2 - missile.x, 2) +
+              Math.pow(enemy.y + enemy.height / 2 - missile.y, 2)
+            );
+            if (enemyDist < 60) {
+              state.explosions.push({
+                x: enemy.x + enemy.width / 2,
+                y: enemy.y + enemy.height / 2,
+                radius: 30,
+                alpha: 1,
+              });
+              state.money += 15;
+              state.kills++;
+              onMoneyChange?.(state.money);
+              return false;
+            }
+            return true;
+          });
+
+          return false;
+        }
+
+        missile.x += (dx / distance) * missile.speed;
+        missile.y += (dy / distance) * missile.speed;
+        return true;
+      });
+
+      state.airStrikes = state.airStrikes.filter((strike) => {
+        strike.timer--;
+
+        if (strike.timer <= 0) {
+          state.explosions.push({
+            x: strike.x,
+            y: strike.y,
+            radius: 30,
+            alpha: 1,
+          });
+
+          state.enemies = state.enemies.filter((enemy) => {
+            const dist = Math.sqrt(
+              Math.pow(enemy.x + enemy.width / 2 - strike.x, 2) +
+              Math.pow(enemy.y + enemy.height / 2 - strike.y, 2)
+            );
+            if (dist < 100) {
+              state.explosions.push({
+                x: enemy.x + enemy.width / 2,
+                y: enemy.y + enemy.height / 2,
+                radius: 30,
+                alpha: 1,
+              });
+              state.money += 15;
+              state.kills++;
+              onMoneyChange?.(state.money);
+              return false;
+            }
+            return true;
+          });
+
+          return false;
+        }
+
+        return true;
+      });
+
+      state.antiAirSystems = state.antiAirSystems.filter((system) => {
+        system.duration--;
+
+        state.enemies.forEach((enemy, i) => {
+          const dist = Math.sqrt(
+            Math.pow(enemy.x - system.x, 2) + Math.pow(enemy.y - system.y, 2)
+          );
+
+          if (dist < system.radius && enemy.type === 'plane') {
+            state.explosions.push({
+              x: enemy.x + enemy.width / 2,
+              y: enemy.y + enemy.height / 2,
+              radius: 30,
+              alpha: 1,
+            });
+            state.enemies.splice(i, 1);
+            state.money += 20;
+            state.kills++;
+            onMoneyChange?.(state.money);
+          }
+        });
+
+        return system.duration > 0;
+      });
     };
 
     const renderGame = () => {
@@ -281,6 +415,69 @@ export default function GameCanvas({ onGameOver, onMoneyChange }: GameCanvasProp
         ctx.globalAlpha = 1;
       });
 
+      state.missiles.forEach((missile) => {
+        ctx.strokeStyle = '#FEC6A1';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        ctx.moveTo(missile.x, missile.y);
+        ctx.lineTo(missile.targetX, missile.targetY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = '#EA384C';
+        ctx.beginPath();
+        ctx.arc(missile.x, missile.y, 6, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = '#FEC6A1';
+        ctx.beginPath();
+        ctx.arc(missile.x, missile.y, 3, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      state.airStrikes.forEach((strike) => {
+        ctx.strokeStyle = '#EA384C';
+        ctx.lineWidth = 3;
+        ctx.setLineDash([10, 5]);
+        ctx.beginPath();
+        ctx.arc(strike.x, strike.y, 100, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        ctx.fillStyle = '#EA384C';
+        ctx.globalAlpha = 0.3;
+        ctx.beginPath();
+        ctx.arc(strike.x, strike.y, 100, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        ctx.fillStyle = '#FEC6A1';
+        ctx.font = 'bold 24px Orbitron';
+        ctx.textAlign = 'center';
+        ctx.fillText(Math.ceil(strike.timer / 60).toString(), strike.x, strike.y + 8);
+      });
+
+      state.antiAirSystems.forEach((system) => {
+        ctx.strokeStyle = '#4A7C59';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(system.x, system.y, system.radius, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.fillStyle = '#4A7C59';
+        ctx.globalAlpha = 0.1;
+        ctx.beginPath();
+        ctx.arc(system.x, system.y, system.radius, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        ctx.fillStyle = '#4A7C59';
+        ctx.fillRect(system.x - 15, system.y - 15, 30, 30);
+        ctx.fillStyle = '#FEC6A1';
+        ctx.fillRect(system.x - 5, system.y - 10, 10, 20);
+      });
+
       ctx.fillStyle = '#FEC6A1';
       ctx.font = 'bold 20px Orbitron';
       ctx.fillText(`HP: ${state.player.health}`, 20, 40);
@@ -313,6 +510,44 @@ export default function GameCanvas({ onGameOver, onMoneyChange }: GameCanvasProp
     };
   }, [gameStarted, onGameOver, onMoneyChange]);
 
+  const abilities = [
+    { id: 'artillery', name: 'АРТИЛЛЕРИЯ', cost: 500, icon: 'Target' as const, color: 'bg-orange-600' },
+    { id: 'missile', name: 'РАКЕТА', cost: 100, icon: 'Rocket' as const, color: 'bg-red-600' },
+    { id: 'airstrike', name: 'АВИАЦИЯ', cost: 600, icon: 'Plane' as const, color: 'bg-blue-600' },
+    { id: 'antiair', name: 'ПВО', cost: 500, icon: 'Radio' as const, color: 'bg-green-600' },
+  ];
+
+  const handleAbilityClick = (abilityId: string, cost: number) => {
+    if (gameStateRef.current.money < cost) return;
+    setSelectedAbility(abilityId);
+  };
+
+  const handleCanvasAbilityClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!selectedAbility) return;
+
+    const rect = canvasRef.current?.getBoundingClientRect();
+    if (!rect) return;
+
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+    const state = gameStateRef.current;
+
+    const ability = abilities.find((a) => a.id === selectedAbility);
+    if (!ability || state.money < ability.cost) {
+      setSelectedAbility(null);
+      return;
+    }
+
+    state.money -= ability.cost;
+    onMoneyChange?.(state.money);
+
+    switch (selectedAbility) {
+      case 'artillery':
+        state.explosions.push({ x: clickX, y: clickY, radius: 20, alpha: 1 });
+        state.enemies = state.enemies.filter((enemy) => {
+          const dist = Math.sqrt(
+            Math.pow(enemy.x + enemy.width / 2 - clickX, 2) +\n              Math.pow(enemy.y + enemy.height / 2 - clickY, 2)\n          );\n          if (dist < 80) {\n            state.explosions.push({\n              x: enemy.x + enemy.width / 2,\n              y: enemy.y + enemy.height / 2,\n              radius: 30,\n              alpha: 1,\n            });\n            state.money += 15;\n            state.kills++;\n            onMoneyChange?.(state.money);\n            return false;\n          }\n          return true;\n        });\n        break;\n\n      case 'missile':\n        state.missiles.push({\n          x: state.player.x + state.player.width / 2,\n          y: state.player.y + state.player.height / 2,\n          targetX: clickX,\n          targetY: clickY,\n          speed: 6,\n          damage: 50,\n        });\n        break;\n\n      case 'airstrike':\n        state.airStrikes.push({\n          x: clickX,\n          y: clickY,\n          timer: 90,\n        });\n        break;\n\n      case 'antiair':\n        state.antiAirSystems.push({\n          x: clickX,\n          y: clickY,\n          radius: 500,\n          duration: 600,\n        });\n        break;\n    }\n\n    setSelectedAbility(null);\n  };
+
   if (!gameStarted) {
     return (
       <div className="flex items-center justify-center h-screen bg-[#1A1F2C]">
@@ -326,5 +561,14 @@ export default function GameCanvas({ onGameOver, onMoneyChange }: GameCanvasProp
     );
   }
 
-  return <canvas ref={canvasRef} className="block w-full h-full" />;
-}
+  return (
+    <div className="relative w-full h-full">
+      <canvas
+        ref={canvasRef}
+        className="block w-full h-full"
+        onClick={handleCanvasAbilityClick}
+        style={{ cursor: selectedAbility ? 'crosshair' : 'default' }}
+      />
+      
+      <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex gap-2">
+        {abilities.map((ability) => (\n          <Button\n            key={ability.id}\n            onClick={() => handleAbilityClick(ability.id, ability.cost)}\n            disabled={money < ability.cost}\n            className={`${ability.color} hover:opacity-80 text-white font-bold px-4 py-6 flex flex-col items-center gap-1 transition-all ${\n              selectedAbility === ability.id ? 'ring-4 ring-accent scale-110' : ''\n            }`}\n          >\n            <Icon name={ability.icon} size={24} />\n            <span className="text-xs">{ability.name}</span>\n            <span className="text-xs opacity-80">${ability.cost}</span>\n          </Button>\n        ))}\n      </div>\n\n      {selectedAbility && (\n        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-accent text-background px-6 py-3 rounded-lg font-bold text-xl pointer-events-none">\n          ВЫБЕРИТЕ ЦЕЛЬ НА КАРТЕ\n        </div>\n      )}\n    </div>\n  );\n}
