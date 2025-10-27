@@ -591,7 +591,11 @@ export default function GameCanvas({ onGameOver, onMoneyChange, money }: GameCan
           radius: 500,
           duration: 600,
         });
-        break;\n    }\n\n    setSelectedAbility(null);\n  };
+        break;
+    }
+
+    setSelectedAbility(null);
+  };
 
   if (!gameStarted) {
     return (
