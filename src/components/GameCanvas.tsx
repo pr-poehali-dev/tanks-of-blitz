@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import Icon from '@/components/ui/icon';
+import Joystick from '@/components/Joystick';
 
 interface GameObject {
   x: number;
@@ -62,6 +63,7 @@ export default function GameCanvas({ onGameOver, onMoneyChange, money }: GameCan
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [gameStarted, setGameStarted] = useState(false);
   const [selectedAbility, setSelectedAbility] = useState<string | null>(null);
+  const [joystickDirection, setJoystickDirection] = useState({ x: 0, y: 0 });
   const gameStateRef = useRef({
     player: { x: 100, y: 500, width: 40, height: 40, color: '#4A7C59', health: 100, speed: 3 },
     enemies: [] as GameObject[],
@@ -147,17 +149,17 @@ export default function GameCanvas({ onGameOver, onMoneyChange, money }: GameCan
     };
 
     const updateGame = () => {
-      if (state.keys['w'] || state.keys['arrowup']) {
-        state.player.y = Math.max(0, state.player.y - state.player.speed);
+      if (state.keys['w'] || state.keys['arrowup'] || joystickDirection.y < -0.2) {
+        state.player.y = Math.max(0, state.player.y - state.player.speed * Math.max(1, Math.abs(joystickDirection.y) * 2));
       }
-      if (state.keys['s'] || state.keys['arrowdown']) {
-        state.player.y = Math.min(canvas.height - state.player.height, state.player.y + state.player.speed);
+      if (state.keys['s'] || state.keys['arrowdown'] || joystickDirection.y > 0.2) {
+        state.player.y = Math.min(canvas.height - state.player.height, state.player.y + state.player.speed * Math.max(1, Math.abs(joystickDirection.y) * 2));
       }
-      if (state.keys['a'] || state.keys['arrowleft']) {
-        state.player.x = Math.max(0, state.player.x - state.player.speed);
+      if (state.keys['a'] || state.keys['arrowleft'] || joystickDirection.x < -0.2) {
+        state.player.x = Math.max(0, state.player.x - state.player.speed * Math.max(1, Math.abs(joystickDirection.x) * 2));
       }
-      if (state.keys['d'] || state.keys['arrowright']) {
-        state.player.x = Math.min(canvas.width - state.player.width, state.player.x + state.player.speed);
+      if (state.keys['d'] || state.keys['arrowright'] || joystickDirection.x > 0.2) {
+        state.player.x = Math.min(canvas.width - state.player.width, state.player.x + state.player.speed * Math.max(1, Math.abs(joystickDirection.x) * 2));
       }
 
       const now = Date.now();
@@ -508,7 +510,7 @@ export default function GameCanvas({ onGameOver, onMoneyChange, money }: GameCan
       canvas.removeEventListener('mousemove', handleMouseMove);
       canvas.removeEventListener('click', handleClick);
     };
-  }, [gameStarted, onGameOver, onMoneyChange]);
+  }, [gameStarted, onGameOver, onMoneyChange, joystickDirection]);
 
   const abilities = [
     { id: 'artillery', name: 'АРТИЛЛЕРИЯ', cost: 500, icon: 'Target' as const, color: 'bg-orange-600' },
@@ -641,6 +643,8 @@ export default function GameCanvas({ onGameOver, onMoneyChange, money }: GameCan
           ВЫБЕРИТЕ ЦЕЛЬ НА КАРТЕ
         </div>
       )}
+
+      <Joystick onMove={(x, y) => setJoystickDirection({ x, y })} />
     </div>
   );
 }
