@@ -64,6 +64,7 @@ export default function GameCanvas({ onGameOver, onMoneyChange, money }: GameCan
   const [gameStarted, setGameStarted] = useState(false);
   const [selectedAbility, setSelectedAbility] = useState<string | null>(null);
   const [joystickDirection, setJoystickDirection] = useState({ x: 0, y: 0 });
+  const [playerTankImage, setPlayerTankImage] = useState<HTMLImageElement | null>(null);
   const gameStateRef = useRef({
     player: { x: 100, y: 500, width: 40, height: 40, color: '#4A7C59', health: 100, speed: 3 },
     enemies: [] as GameObject[],
@@ -80,6 +81,12 @@ export default function GameCanvas({ onGameOver, onMoneyChange, money }: GameCan
     mouseX: 0,
     mouseY: 0,
   });
+
+  useEffect(() => {
+    const img = new Image();
+    img.src = 'https://cdn.poehali.dev/projects/becdc6f7-b349-43be-aba6-60cc8563a4cd/files/dd9cb488-5e8a-4ea8-8f1b-416dae8051a7.jpg';
+    img.onload = () => setPlayerTankImage(img);
+  }, []);
 
   useEffect(() => {
     if (!gameStarted) return;
@@ -369,15 +376,25 @@ export default function GameCanvas({ onGameOver, onMoneyChange, money }: GameCan
         ctx.fillRect(x, 0, 2, canvas.height);
       }
 
-      ctx.fillStyle = state.player.color;
-      ctx.fillRect(state.player.x, state.player.y, state.player.width, state.player.height);
-      
-      ctx.fillStyle = '#FEC6A1';
-      ctx.fillRect(state.player.x + 10, state.player.y + 10, 8, 8);
-      ctx.fillRect(state.player.x + 22, state.player.y + 10, 8, 8);
-      
-      ctx.fillStyle = '#2A4A2A';
-      ctx.fillRect(state.player.x + 30, state.player.y + 15, 15, 10);
+      if (playerTankImage) {
+        ctx.drawImage(
+          playerTankImage,
+          state.player.x,
+          state.player.y,
+          state.player.width,
+          state.player.height
+        );
+      } else {
+        ctx.fillStyle = state.player.color;
+        ctx.fillRect(state.player.x, state.player.y, state.player.width, state.player.height);
+        
+        ctx.fillStyle = '#FEC6A1';
+        ctx.fillRect(state.player.x + 10, state.player.y + 10, 8, 8);
+        ctx.fillRect(state.player.x + 22, state.player.y + 10, 8, 8);
+        
+        ctx.fillStyle = '#2A4A2A';
+        ctx.fillRect(state.player.x + 30, state.player.y + 15, 15, 10);
+      }
 
       state.enemies.forEach((enemy) => {
         ctx.fillStyle = enemy.color;
@@ -645,6 +662,31 @@ export default function GameCanvas({ onGameOver, onMoneyChange, money }: GameCan
       )}
 
       <Joystick onMove={(x, y) => setJoystickDirection({ x, y })} />
+
+      <Button
+        onClick={() => {
+          const state = gameStateRef.current;
+          const now = Date.now();
+          if (now - state.lastShot < 200) return;
+          state.lastShot = now;
+
+          const dx = state.mouseX - (state.player.x + state.player.width / 2);
+          const dy = state.mouseY - (state.player.y + state.player.height / 2);
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          state.bullets.push({
+            x: state.player.x + state.player.width / 2,
+            y: state.player.y + state.player.height / 2,
+            vx: (dx / distance) * 8,
+            vy: (dy / distance) * 8,
+            damage: 25,
+            owner: 'player',
+          });
+        }}
+        className="fixed bottom-24 right-8 w-20 h-20 rounded-full bg-destructive hover:bg-destructive/80 flex items-center justify-center text-white font-bold shadow-lg active:scale-95 transition-transform"
+      >
+        <Icon name="Target" size={40} />
+      </Button>
     </div>
   );
 }
