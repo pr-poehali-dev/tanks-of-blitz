@@ -563,7 +563,35 @@ export default function GameCanvas({ onGameOver, onMoneyChange, money }: GameCan
           }
           return true;
         });
-        break;\n\n      case 'missile':\n        state.missiles.push({\n          x: state.player.x + state.player.width / 2,\n          y: state.player.y + state.player.height / 2,\n          targetX: clickX,\n          targetY: clickY,\n          speed: 6,\n          damage: 50,\n        });\n        break;\n\n      case 'airstrike':\n        state.airStrikes.push({\n          x: clickX,\n          y: clickY,\n          timer: 90,\n        });\n        break;\n\n      case 'antiair':\n        state.antiAirSystems.push({\n          x: clickX,\n          y: clickY,\n          radius: 500,\n          duration: 600,\n        });\n        break;\n    }\n\n    setSelectedAbility(null);\n  };
+        break;
+
+      case 'missile':
+        state.missiles.push({
+          x: state.player.x + state.player.width / 2,
+          y: state.player.y + state.player.height / 2,
+          targetX: clickX,
+          targetY: clickY,
+          speed: 6,
+          damage: 50,
+        });
+        break;
+
+      case 'airstrike':
+        state.airStrikes.push({
+          x: clickX,
+          y: clickY,
+          timer: 90,
+        });
+        break;
+
+      case 'antiair':
+        state.antiAirSystems.push({
+          x: clickX,
+          y: clickY,
+          radius: 500,
+          duration: 600,
+        });
+        break;\n    }\n\n    setSelectedAbility(null);\n  };
 
   if (!gameStarted) {
     return (
